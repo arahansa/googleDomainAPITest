@@ -17,15 +17,22 @@ import com.google.api.services.plusDomains.model.PlusDomainsAclentryResource;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import javax.net.ssl.HttpsURLConnection;
+
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URL;
 
 public class AuthTestClass {
 
 	// List the scopes your app requires:
 	private static List<String> SCOPE = Arrays.asList("https://www.googleapis.com/auth/plus.me",
-			"https://www.googleapis.com/auth/plus.stream.write");
+			"https://www.googleapis.com/auth/plus.stream.write", "https://www.googleapis.com/auth/plus.stream.read"
+			,"https://www.googleapis.com/auth/plus.circles.read", "https://www.googleapis.com/auth/plus.circles.write");
 
 	// The following redirect URI causes Google to return a code to the user's
 	// browser that they then manually provide to your app to complete the
@@ -76,6 +83,7 @@ public class AuthTestClass {
 					public void onTokenResponse(Credential credential, TokenResponse tokenResponse) {
 						// Handle success.
 						System.out.println("Credential was refreshed successfully.");
+						System.out.println("Token Server URL : "+credential.getTokenServerEncodedUrl());
 					}
 
 					@Override
@@ -94,6 +102,8 @@ public class AuthTestClass {
 
 		// Set authorized credentials.
 		credential.setFromTokenResponse(tokenResponse);
+		System.out.println("credential account id " +credential.getServiceAccountId());
+		System.out.println("credential service account user " +credential.getServiceAccountUser());
 		System.out.println("Token Info : "+tokenResponse);
 		System.out.println("Access Token :: "+ tokenResponse.getAccessToken());
 		// Though not necessary when first created, you can manually refresh the
@@ -101,7 +111,7 @@ public class AuthTestClass {
 		credential.refreshToken();
 
 		// Create a new authorized API client
-		PlusDomains plusDomains = new PlusDomains.Builder(new NetHttpTransport(), new JacksonFactory(), credential)
+		PlusDomains plusDomains = new PlusDomains.Builder(new NetHttpTransport(), new JacksonFactory(), credential).setApplicationName("Winvention")
 				.build();
 		
 		//
@@ -127,7 +137,63 @@ public class AuthTestClass {
 		    .setAccess(acl);
 
 		// Execute the API request, which calls `activities.insert` for the logged in user
-		activity = plusDomains.activities().insert("me", activity).execute();
+		// activity = plusDomains.activities().insert("me", activity).execute();
+		
+		// Write Test 2 
+		postArticle("OAuth"+tokenResponse.getAccessToken());
+		postArticle(" "+tokenResponse.getAccessToken());
+		postArticle("OAuth$"+tokenResponse.getAccessToken());
+		
+		/*
+		postArticle("OAuth$"+tokenResponse.getIdToken());
+		postArticle("OAuth"+tokenResponse.getIdToken());
+		postArticle(tokenResponse.getIdToken());
+		*/
+	}
+	
+	private static void postArticle(String auth){
+		System.out.println("Auth : "+auth);
+		String url3 = "https://www.googleapis.com/plusDomains/v1/people/116596176592415175958/activities";
+		URL obj;
+		try {
+			obj = new URL(url3);
+		
+		HttpsURLConnection con = (HttpsURLConnection) obj.openConnection();
+
+		//add reuqest header
+		con.setRequestMethod("POST");
+		con.setRequestProperty("Authorization", auth);
+		con.setRequestProperty("Content-Type", "application/json");
+
+		String urlParameters = "{"
+				+ "\"object\": "
+					+ "{\"originalContent\": \"tting new coversheets on all the TPS reports before they go out now.\"},"
+				+ "\"access\":"
+					+ "{\"domainRestricted\": true}"
+				+ "}";
+		
+		// Send post request
+		con.setDoOutput(true);
+		DataOutputStream wr = new DataOutputStream(con.getOutputStream());
+		wr.write(urlParameters.getBytes("UTF-8"));
+		wr.flush();
+		wr.close();
+
+		int responseCode = con.getResponseCode();
+		String responseMessage = con.getResponseMessage();
+		
+		
+		System.out.println("Post parameters : " + urlParameters);
+		System.out.println("Response Code : " + responseCode);
+		System.out.println("Response Message : "+ responseMessage);
+
+		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 }
